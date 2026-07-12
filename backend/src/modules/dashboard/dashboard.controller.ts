@@ -18,7 +18,7 @@ export class DashboardController {
         message: 'Dashboard data retrieved successfully',
         data: {
           stats,
-          activity,
+          ...activity,
         },
       });
     } catch (error) {

@@ -11,9 +11,11 @@ export const api = axios.create({
 
 // Request interceptor to attach JWT
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('transitops_token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+  if (typeof window !== "undefined") {
+    const token = localStorage.getItem('transitops_token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
   }
   return config;
 });
@@ -29,6 +31,8 @@ api.interceptors.response.use(
       originalRequest._retry = true;
       
       try {
+        if (typeof window === "undefined") throw new Error('No window');
+        
         const refreshToken = localStorage.getItem('transitops_refresh_token');
         if (!refreshToken) throw new Error('No refresh token');
         
@@ -46,10 +50,12 @@ api.interceptors.response.use(
         return api(originalRequest);
       } catch (refreshError) {
         // If refresh fails, force logout
-        localStorage.removeItem('transitops_token');
-        localStorage.removeItem('transitops_refresh_token');
-        localStorage.removeItem('transitops_user');
-        window.location.href = '/login';
+        if (typeof window !== "undefined") {
+          localStorage.removeItem('transitops_token');
+          localStorage.removeItem('transitops_refresh_token');
+          localStorage.removeItem('transitops_user');
+          window.location.href = '/login';
+        }
         return Promise.reject(refreshError);
       }
     }

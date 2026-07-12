@@ -58,7 +58,7 @@ function DashboardPage() {
     );
   }
 
-  const { stats, utilizationTrend, activities, monthlyFuel, licenseSoon, recentTrips } = dashboardData;
+  const { stats, utilizationTrend, activities = [], monthlyFuel = [], licenseSoon = [], recentTrips = [] } = dashboardData;
 
   const {
     totalVehicles,
@@ -247,17 +247,20 @@ function DashboardPage() {
             <p className="text-xs text-muted-foreground">Weekly service load</p>
           </div>
           <div className="grid grid-cols-3 divide-x divide-border">
-            {[
+            {(dashboardData.maintenanceOverview || [
               { l: "Today", v: 3, icon: Clock, color: "text-sky-400" },
               { l: "Pending", v: 8, icon: CircleAlert, color: "text-amber-400" },
               { l: "Completed", v: 12, icon: CircleCheck, color: "text-emerald-400" },
-            ].map((s) => (
-              <div key={s.l} className="p-5">
-                <s.icon className={`h-4 w-4 ${s.color}`} />
-                <p className="mt-3 text-2xl font-semibold">{s.v}</p>
-                <p className="text-xs text-muted-foreground">{s.l}</p>
-              </div>
-            ))}
+            ]).map((s: any) => {
+              const Icon = s.icon === "Clock" ? Clock : s.icon === "CircleAlert" ? CircleAlert : s.icon === "CircleCheck" ? CircleCheck : s.icon;
+              return (
+                <div key={s.l} className="p-5">
+                  <Icon className={`h-4 w-4 ${s.color}`} />
+                  <p className="mt-3 text-2xl font-semibold">{s.v}</p>
+                  <p className="text-xs text-muted-foreground">{s.l}</p>
+                </div>
+              );
+            })}
           </div>
           <div className="border-t border-border p-5">
             <p className="text-xs uppercase tracking-wide text-muted-foreground">Quick actions</p>

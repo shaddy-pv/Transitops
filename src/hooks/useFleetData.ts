@@ -7,7 +7,7 @@ export const useDashboardStats = () => {
     queryKey: ['dashboard'],
     queryFn: async () => {
       const { data } = await api.get('/dashboard');
-      return data.data; // stats, chartData, recentActivity, etc.
+      return data.data || {}; // stats, chartData, recentActivity, etc.
     },
   });
 };
@@ -18,7 +18,7 @@ export const useVehicles = () => {
     queryKey: ['vehicles'],
     queryFn: async () => {
       const { data } = await api.get('/vehicles');
-      return data.data; // array of vehicles
+      return data.data || []; // array of vehicles
     },
   });
 };
@@ -44,7 +44,7 @@ export const useDrivers = () => {
     queryKey: ['drivers'],
     queryFn: async () => {
       const { data } = await api.get('/drivers');
-      return data.data;
+      return data.data || [];
     },
   });
 };
@@ -70,7 +70,7 @@ export const useTrips = () => {
     queryKey: ['trips'],
     queryFn: async () => {
       const { data } = await api.get('/trips');
-      return data.data;
+      return data.data || [];
     },
   });
 };
@@ -94,7 +94,7 @@ export const useMaintenance = () => {
     queryKey: ['maintenance'],
     queryFn: async () => {
       const { data } = await api.get('/maintenance');
-      return data.data;
+      return data.data || [];
     },
   });
 };
@@ -119,7 +119,7 @@ export const useFuel = () => {
     queryKey: ['fuel'],
     queryFn: async () => {
       const { data } = await api.get('/fuel');
-      return data.data;
+      return data.data || [];
     },
   });
 };

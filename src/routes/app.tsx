@@ -8,11 +8,13 @@ import { ShortcutsDialog } from "@/components/layout/ShortcutsDialog";
 
 export const Route = createFileRoute("/app")({
   beforeLoad: () => {
-    const token = localStorage.getItem("transitops_token");
-    if (!token) {
-      throw redirect({
-        to: "/login",
-      });
+    if (typeof window !== "undefined") {
+      const token = localStorage.getItem("transitops_token");
+      if (!token) {
+        throw redirect({
+          to: "/login",
+        });
+      }
     }
   },
   component: AppLayout,
