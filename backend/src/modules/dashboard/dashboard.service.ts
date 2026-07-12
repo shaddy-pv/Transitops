@@ -3,7 +3,6 @@ import { Driver } from '../../shared/models/Driver';
 import { Trip } from '../../shared/models/Trip';
 import { Expense } from '../../shared/models/Expense';
 import { Maintenance } from '../../shared/models/Maintenance';
-import { FuelLog } from '../../shared/models/FuelLog';
 
 export class DashboardService {
   async getDashboardStats() {
