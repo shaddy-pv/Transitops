@@ -1,23 +1,33 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { Truck, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useAuth } from "@/hooks/useAuth";
 
 export const Route = createFileRoute("/login")({
   component: LoginPage,
 });
 
 function LoginPage() {
-  const navigate = useNavigate();
+  const { login } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [email, setEmail] = useState('admin@transitops.com');
+  const [password, setPassword] = useState('password123');
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setTimeout(() => navigate({ to: "/app/dashboard" }), 700);
+    setError('');
+    
+    const result = await login({ email, password });
+    if (!result.success) {
+      setError(result.message);
+      setLoading(false);
+    }
   };
 
   return (
@@ -57,9 +67,20 @@ function LoginPage() {
           </p>
 
           <form onSubmit={submit} className="mt-8 space-y-4">
+            {error && (
+              <div className="rounded-md bg-destructive/15 p-3 text-sm text-destructive">
+                {error}
+              </div>
+            )}
             <div className="space-y-1.5">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" defaultValue="anita.rao@transitops.io" required />
+              <Input 
+                id="email" 
+                type="email" 
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required 
+              />
             </div>
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
@@ -68,7 +89,13 @@ function LoginPage() {
                   Forgot password?
                 </a>
               </div>
-              <Input id="password" type="password" defaultValue="••••••••" required />
+              <Input 
+                id="password" 
+                type="password" 
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required 
+              />
             </div>
             <label className="flex items-center gap-2 text-sm text-muted-foreground">
               <Checkbox defaultChecked /> Remember me for 30 days

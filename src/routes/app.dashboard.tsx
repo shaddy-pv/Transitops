@@ -27,35 +27,54 @@ import { StatCard } from "@/components/common/StatCard";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { vehicles } from "@/mock/vehicles";
-import { drivers } from "@/mock/drivers";
-import { trips } from "@/mock/trips";
-import { utilizationTrend, activities } from "@/mock/dashboard";
-import { monthlyFuel } from "@/mock/fuel";
+import { useDashboardStats } from "@/hooks/useFleetData";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export const Route = createFileRoute("/app/dashboard")({
   component: DashboardPage,
 });
 
 function DashboardPage() {
-  const totalVehicles = vehicles.length;
-  const available = vehicles.filter((v) => v.status === "Available").length;
-  const inMaint = vehicles.filter((v) => v.status === "Maintenance").length;
-  const onDuty = drivers.filter((d) => d.status === "On Duty").length;
-  const activeTrips = trips.filter((t) => t.status === "In Transit" || t.status === "Dispatched").length;
-  const pendingTrips = trips.filter((t) => t.status === "Draft").length;
-  const utilization = Math.round(((totalVehicles - inMaint - vehicles.filter((v) => v.status === "Idle").length) / totalVehicles) * 100);
+  const { data: dashboardData, isLoading, error } = useDashboardStats();
 
-  const recentTrips = trips.slice(0, 6);
-  const licenseSoon = [...drivers]
-    .sort((a, b) => a.licenseExpiry.localeCompare(b.licenseExpiry))
-    .slice(0, 5);
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <PageHeader title="Fleet Overview" description="Loading real-time snapshot..." breadcrumbs={[{ label: "Home" }, { label: "Dashboard" }]} />
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-4 2xl:grid-cols-7">
+          {Array.from({ length: 7 }).map((_, i) => (
+            <Skeleton key={i} className="h-32 w-full rounded-xl" />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !dashboardData) {
+    return (
+      <div className="rounded-md bg-destructive/15 p-4 text-destructive">
+        Failed to load dashboard data. Please try again.
+      </div>
+    );
+  }
+
+  const { stats, utilizationTrend, activities, monthlyFuel, licenseSoon, recentTrips } = dashboardData;
+
+  const {
+    totalVehicles,
+    available,
+    inMaintenance,
+    onDuty,
+    activeTrips,
+    pendingTrips,
+    utilization,
+  } = stats;
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Fleet Overview"
-        description="Real-time snapshot of your operations, updated every 60 seconds."
+        description="Real-time snapshot of your operations, updated dynamically."
         breadcrumbs={[{ label: "Home" }, { label: "Dashboard" }]}
         actions={
           <>
@@ -74,7 +93,7 @@ function DashboardPage() {
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4 2xl:grid-cols-7">
         <StatCard label="Total Vehicles" value={totalVehicles} icon={Truck} delta={3} hint="vs last week" />
         <StatCard label="Available" value={available} icon={CircleCheck} delta={5} hint="ready" />
-        <StatCard label="In Maintenance" value={inMaint} icon={Wrench} delta={-2} hint="under service" />
+        <StatCard label="In Maintenance" value={inMaintenance} icon={Wrench} delta={-2} hint="under service" />
         <StatCard label="Drivers On Duty" value={onDuty} icon={Users} delta={4} hint="active shift" />
         <StatCard label="Active Trips" value={activeTrips} icon={RouteIcon} delta={7} hint="in transit" />
         <StatCard label="Pending Trips" value={pendingTrips} icon={Clock} delta={-1} hint="awaiting dispatch" />

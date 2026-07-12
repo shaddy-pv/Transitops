@@ -1,4 +1,4 @@
-import { Outlet, createFileRoute } from "@tanstack/react-router";
+import { Outlet, createFileRoute, redirect } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { TopBar } from "@/components/layout/TopBar";
@@ -7,6 +7,14 @@ import { MobileSidebar } from "@/components/layout/MobileSidebar";
 import { ShortcutsDialog } from "@/components/layout/ShortcutsDialog";
 
 export const Route = createFileRoute("/app")({
+  beforeLoad: () => {
+    const token = localStorage.getItem("transitops_token");
+    if (!token) {
+      throw redirect({
+        to: "/login",
+      });
+    }
+  },
   component: AppLayout,
 });
 

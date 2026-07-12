@@ -7,6 +7,7 @@ import { StatCard } from "@/components/common/StatCard";
 import { DataTable } from "@/components/common/DataTable";
 import { StatusBadge } from "@/components/common/StatusBadge";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,9 +33,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { trips as data, type Trip } from "@/mock/trips";
-import { vehicles } from "@/mock/vehicles";
-import { drivers } from "@/mock/drivers";
+import { useTrips, useCreateTrip, useVehicles, useDrivers } from "@/hooks/useFleetData";
 
 export const Route = createFileRoute("/app/trips")({
   component: TripsPage,
@@ -42,14 +41,16 @@ export const Route = createFileRoute("/app/trips")({
 
 function TripsPage() {
   const [statusF, setStatusF] = useState("all");
-  const [selected, setSelected] = useState<Trip | null>(null);
+  const [selected, setSelected] = useState<any | null>(null);
 
-  const filtered = useMemo(
-    () => (statusF === "all" ? data : data.filter((t) => t.status === statusF)),
-    [statusF],
-  );
+  const { data: tripsData, isLoading, error } = useTrips();
 
-  const columns: ColumnDef<Trip>[] = useMemo(
+  const filtered = useMemo(() => {
+    if (!tripsData) return [];
+    return statusF === "all" ? tripsData : tripsData.filter((t: any) => t.status === statusF);
+  }, [tripsData, statusF]);
+
+  const columns: ColumnDef<any>[] = useMemo(
     () => [
       { accessorKey: "code", header: "Trip", cell: ({ row }) => <span className="font-medium">{row.original.code}</span> },
       {
@@ -61,14 +62,26 @@ function TripsPage() {
           </span>
         ),
       },
-      { accessorKey: "vehicleId", header: "Vehicle" },
-      { accessorKey: "driverId", header: "Driver" },
+      { 
+        accessorKey: "vehicle", 
+        header: "Vehicle",
+        cell: ({ row }) => <span>{row.original.vehicle?.registrationNumber || row.original.vehicleId}</span>
+      },
+      { 
+        accessorKey: "driver", 
+        header: "Driver",
+        cell: ({ row }) => <span>{row.original.driver?.name || row.original.driverId}</span>
+      },
       {
         accessorKey: "distance",
         header: "Distance",
         cell: ({ row }) => <span className="tabular-nums">{row.original.distance} km</span>,
       },
-      { accessorKey: "scheduled", header: "Scheduled" },
+      { 
+        accessorKey: "scheduled", 
+        header: "Scheduled",
+        cell: ({ row }) => <span>{new Date(row.original.scheduledDate || row.original.scheduled).toLocaleDateString()}</span>
+      },
       { accessorKey: "status", header: "Status", cell: ({ row }) => <StatusBadge status={row.original.status} /> },
       {
         id: "actions",
@@ -94,6 +107,23 @@ function TripsPage() {
     [],
   );
 
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <PageHeader title="Trips" description="Loading trips..." breadcrumbs={[{ label: "Home" }, { label: "Trips" }]} />
+        <Skeleton className="h-[400px] w-full rounded-xl" />
+      </div>
+    );
+  }
+
+  if (error || !tripsData) {
+    return (
+      <div className="rounded-md bg-destructive/15 p-4 text-destructive">
+        Failed to load trips.
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -104,10 +134,10 @@ function TripsPage() {
       />
 
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        <StatCard label="Total Trips" value={data.length} icon={RouteIcon} />
-        <StatCard label="In Transit" value={data.filter((t) => t.status === "In Transit").length} />
-        <StatCard label="Dispatched" value={data.filter((t) => t.status === "Dispatched").length} />
-        <StatCard label="Completed" value={data.filter((t) => t.status === "Completed").length} />
+        <StatCard label="Total Trips" value={tripsData.length} icon={RouteIcon} />
+        <StatCard label="In Transit" value={tripsData.filter((t: any) => t.status === "In Transit").length} />
+        <StatCard label="Dispatched" value={tripsData.filter((t: any) => t.status === "Dispatched").length} />
+        <StatCard label="Completed" value={tripsData.filter((t: any) => t.status === "Completed").length} />
       </div>
 
       <DataTable
@@ -134,7 +164,7 @@ function TripsPage() {
   );
 }
 
-function TripDrawer({ trip, onOpenChange }: { trip: Trip | null; onOpenChange: (o: boolean) => void }) {
+function TripDrawer({ trip, onOpenChange }: { trip: any | null; onOpenChange: (o: boolean) => void }) {
   return (
     <Sheet open={!!trip} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:max-w-lg">
@@ -155,12 +185,12 @@ function TripDrawer({ trip, onOpenChange }: { trip: Trip | null; onOpenChange: (
                 <p className="mt-1 text-xs text-muted-foreground">{trip.distance} km</p>
               </div>
               <dl className="grid grid-cols-2 gap-4 text-sm">
-                <div><dt className="text-xs text-muted-foreground">Vehicle</dt><dd className="mt-0.5 font-medium">{trip.vehicleId}</dd></div>
-                <div><dt className="text-xs text-muted-foreground">Driver</dt><dd className="mt-0.5 font-medium">{trip.driverId}</dd></div>
+                <div><dt className="text-xs text-muted-foreground">Vehicle</dt><dd className="mt-0.5 font-medium">{trip.vehicle?.registrationNumber || trip.vehicleId}</dd></div>
+                <div><dt className="text-xs text-muted-foreground">Driver</dt><dd className="mt-0.5 font-medium">{trip.driver?.name || trip.driverId}</dd></div>
                 <div><dt className="text-xs text-muted-foreground">Cargo</dt><dd className="mt-0.5 font-medium">{trip.cargo}</dd></div>
                 <div><dt className="text-xs text-muted-foreground">Weight</dt><dd className="mt-0.5 font-medium">{trip.cargoWeight} T</dd></div>
-                <div><dt className="text-xs text-muted-foreground">Scheduled</dt><dd className="mt-0.5 font-medium">{trip.scheduled}</dd></div>
-                <div><dt className="text-xs text-muted-foreground">Est. Cost</dt><dd className="mt-0.5 font-medium">₹{trip.cost.toLocaleString()}</dd></div>
+                <div><dt className="text-xs text-muted-foreground">Scheduled</dt><dd className="mt-0.5 font-medium">{new Date(trip.scheduledDate || trip.scheduled).toLocaleDateString()}</dd></div>
+                <div><dt className="text-xs text-muted-foreground">Est. Cost</dt><dd className="mt-0.5 font-medium">₹{trip.cost?.toLocaleString() || 0}</dd></div>
               </dl>
 
               <div>
@@ -192,6 +222,37 @@ function TripDrawer({ trip, onOpenChange }: { trip: Trip | null; onOpenChange: (
 
 function CreateTripDialog() {
   const [open, setOpen] = useState(false);
+  const { data: vehicles } = useVehicles();
+  const { data: drivers } = useDrivers();
+  const { mutateAsync: createTrip, isPending } = useCreateTrip();
+
+  const [vehicleId, setVehicleId] = useState("");
+  const [driverId, setDriverId] = useState("");
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const data = {
+      source: formData.get("source"),
+      destination: formData.get("destination"),
+      vehicleId,
+      driverId,
+      cargo: formData.get("cargo") || "General",
+      cargoWeight: Number(formData.get("cargoWeight")),
+      distance: Number(formData.get("distance")),
+      scheduledDate: new Date().toISOString(),
+      status: 'Dispatched',
+    };
+
+    try {
+      await createTrip(data);
+      setOpen(false);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to create trip");
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -201,38 +262,38 @@ function CreateTripDialog() {
         <DialogHeader><DialogTitle>Create new trip</DialogTitle></DialogHeader>
         <form
           className="grid grid-cols-1 gap-4 sm:grid-cols-2"
-          onSubmit={(e) => { e.preventDefault(); setOpen(false); }}
+          onSubmit={handleSubmit}
         >
-          <div className="space-y-1.5"><Label>Source</Label><Input placeholder="Mumbai" required /></div>
-          <div className="space-y-1.5"><Label>Destination</Label><Input placeholder="Delhi" required /></div>
+          <div className="space-y-1.5"><Label>Source</Label><Input name="source" placeholder="Mumbai" required /></div>
+          <div className="space-y-1.5"><Label>Destination</Label><Input name="destination" placeholder="Delhi" required /></div>
           <div className="space-y-1.5">
             <Label>Vehicle</Label>
-            <Select>
+            <Select value={vehicleId} onValueChange={setVehicleId} required>
               <SelectTrigger><SelectValue placeholder="Assign vehicle" /></SelectTrigger>
               <SelectContent>
-                {vehicles.slice(0, 8).map((v) => (
-                  <SelectItem key={v.id} value={v.id}>{v.registration}</SelectItem>
+                {vehicles?.filter((v:any) => v.status === 'Available').map((v: any) => (
+                  <SelectItem key={v._id} value={v._id}>{v.registrationNumber}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
           <div className="space-y-1.5">
             <Label>Driver</Label>
-            <Select>
+            <Select value={driverId} onValueChange={setDriverId} required>
               <SelectTrigger><SelectValue placeholder="Assign driver" /></SelectTrigger>
               <SelectContent>
-                {drivers.slice(0, 8).map((d) => (
-                  <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                {drivers?.filter((d:any) => d.status === 'On Duty' || d.status === 'Available').map((d: any) => (
+                  <SelectItem key={d._id} value={d._id}>{d.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-1.5"><Label>Cargo weight (T)</Label><Input type="number" placeholder="0" required /></div>
-          <div className="space-y-1.5"><Label>Distance (km)</Label><Input type="number" placeholder="0" required /></div>
-          <div className="space-y-1.5 sm:col-span-2"><Label>Cargo notes</Label><Textarea placeholder="Handling, restrictions, contact…" rows={3} /></div>
+          <div className="space-y-1.5"><Label>Cargo weight (T)</Label><Input name="cargoWeight" type="number" placeholder="0" required /></div>
+          <div className="space-y-1.5"><Label>Distance (km)</Label><Input name="distance" type="number" placeholder="0" required /></div>
+          <div className="space-y-1.5 sm:col-span-2"><Label>Cargo notes (Optional)</Label><Textarea name="cargo" placeholder="Handling, restrictions, contact…" rows={3} /></div>
           <DialogFooter className="sm:col-span-2">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>Save as draft</Button>
-            <Button type="submit">Dispatch</Button>
+            <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+            <Button type="submit" disabled={isPending}>{isPending ? "Dispatching..." : "Dispatch"}</Button>
           </DialogFooter>
         </form>
       </DialogContent>

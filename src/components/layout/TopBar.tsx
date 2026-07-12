@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import {
   Bell,
   Search,
@@ -20,7 +20,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { notifications } from "@/mock/notifications";
+import { notifications as mockNotifications } from "@/mock/notifications";
+import { useSocket } from "@/hooks/useSocket";
+import { useAuth } from "@/hooks/useAuth";
 
 interface TopBarProps {
   onOpenPalette: () => void;
@@ -29,7 +31,29 @@ interface TopBarProps {
 }
 
 export function TopBar({ onOpenPalette, onOpenSidebar, onOpenShortcuts }: TopBarProps) {
-  const unread = notifications.filter((n) => !n.read).length;
+  const { notifications: liveNotifications } = useSocket();
+  const { logout } = useAuth();
+  const navigate = useNavigate();
+
+  // Combine live notifications with mock notifications for display
+  const allNotifications = [
+    ...liveNotifications.map((n, i) => ({
+      id: `live-${i}`,
+      title: n.title,
+      detail: n.message,
+      time: 'Just now',
+      type: n.type || 'info',
+      read: false
+    })),
+    ...mockNotifications
+  ];
+
+  const unread = allNotifications.filter((n) => !n.read).length;
+
+  const handleLogout = () => {
+    logout();
+    navigate({ to: "/login" });
+  };
 
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border bg-background/80 px-4 backdrop-blur">
@@ -80,7 +104,7 @@ export function TopBar({ onOpenPalette, onOpenSidebar, onOpenShortcuts }: TopBar
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <div className="max-h-80 overflow-y-auto">
-              {notifications.slice(0, 6).map((n) => (
+              {allNotifications.slice(0, 6).map((n) => (
                 <div
                   key={n.id}
                   className="flex items-start gap-3 px-3 py-2.5 hover:bg-secondary/60"
@@ -88,7 +112,7 @@ export function TopBar({ onOpenPalette, onOpenSidebar, onOpenShortcuts }: TopBar
                   <span
                     className={
                       "mt-1.5 h-1.5 w-1.5 rounded-full " +
-                      (n.type === "critical"
+                      (n.type === "critical" || n.type === "error"
                         ? "bg-red-400"
                         : n.type === "warning"
                           ? "bg-amber-400"
@@ -116,11 +140,11 @@ export function TopBar({ onOpenPalette, onOpenSidebar, onOpenShortcuts }: TopBar
           <DropdownMenuTrigger asChild>
             <button className="ml-1 flex h-8 items-center gap-2 rounded-md pr-2 hover:bg-secondary/60">
               <Avatar className="h-8 w-8">
-                <AvatarFallback className="bg-secondary text-xs">AR</AvatarFallback>
+                <AvatarFallback className="bg-secondary text-xs">A</AvatarFallback>
               </Avatar>
               <div className="hidden text-left text-xs sm:block">
-                <p className="font-medium leading-tight text-foreground">Anita Rao</p>
-                <p className="leading-tight text-muted-foreground">Fleet Manager</p>
+                <p className="font-medium leading-tight text-foreground">Admin</p>
+                <p className="leading-tight text-muted-foreground">Super Admin</p>
               </div>
             </button>
           </DropdownMenuTrigger>
@@ -138,11 +162,9 @@ export function TopBar({ onOpenPalette, onOpenSidebar, onOpenShortcuts }: TopBar
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-              <Link to="/login">
-                <LogOut className="mr-2 h-4 w-4" />
-                Log out
-              </Link>
+            <DropdownMenuItem onSelect={handleLogout}>
+              <LogOut className="mr-2 h-4 w-4" />
+              Log out
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
