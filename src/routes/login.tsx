@@ -24,7 +24,7 @@ function LoginPage() {
     setLoading(true);
     setError('');
     
-    const result = await login({ email, password });
+    const result = await login({ email: email.trim(), password: password.trim() });
     if (!result.success) {
       setError(result.message);
       setLoading(false);
